@@ -27,7 +27,7 @@ st.markdown(
 monthly_investment = st.slider("Monthly Investment Amount (₹)", min_value=500, max_value=50000, value=2000, step=500)
 investment_period = st.slider("Investment Period (Years)", min_value=2, max_value=30, value=4, step=1)
 expected_return_rate = st.slider("Expected Annual Return Rate (%)", min_value=8.0, max_value=25.0, value=15.0, step=0.1)
-adjust_for_inflation = st.checkbox("Adjust for Inflation (6% annually)")
+adjust_for_inflation = st.checkbox("Adjust for Inflation (5% annually)")
 
 # Calculate SIP returns with or without inflation adjustment
 def calculate_sip_returns(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation):

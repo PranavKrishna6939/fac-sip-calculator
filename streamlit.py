@@ -5,6 +5,7 @@ import altair as alt
 from datetime import date
 from streamlit_extras.app_logo import add_logo
 
+st.set_page_config(layout="wide")
 st.title(":green[SIP] Calculator :chart_with_upwards_trend:")
 
 # Uncomment the next line to add a logo if needed

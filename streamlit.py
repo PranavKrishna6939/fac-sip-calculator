@@ -6,8 +6,9 @@ from datetime import date
 from streamlit_extras.app_logo import add_logo
 
 st.title(":green[SIP] Calculator :chart_with_upwards_trend:")
-#add_logo("http://placekitten.com/120/120")
-#st.divider()
+
+# Uncomment the next line to add a logo if needed
+# add_logo("http://placekitten.com/120/120")
 
 # Remove Streamlit menu and footer
 st.markdown(
@@ -25,19 +26,23 @@ monthly_investment = st.slider("Monthly Investment Amount (₹)", min_value=500,
 investment_period = st.slider("Investment Period (Years)", min_value=2, max_value=30, value=4, step=1)
 expected_return_rate = st.slider("Expected Annual Return Rate (%)", min_value=6.0, max_value=25.0, value=12.0, step=0.1)
 
-# Calculate SIP returns
-def calculate_sip_returns(monthly_investment, investment_period, expected_return_rate):
+# Inflation option
+incorporate_inflation = st.radio("Incorporate Inflation Adjuster (6%)?", ('No', 'Yes'))
+
+# Calculate SIP returns with or without inflation
+def calculate_sip_returns(monthly_investment, investment_period, expected_return_rate, incorporate_inflation):
     months = investment_period * 12
     monthly_rate = (expected_return_rate / 100) / 12
-    
+    inflation_rate = 0.06 / 12 if incorporate_inflation == 'Yes' else 0
+
     invested_amount = monthly_investment * months
-    future_value = monthly_investment * ((((1 + monthly_rate) ** months) - 1) / monthly_rate) * (1 + monthly_rate)
+    future_value = monthly_investment * sum([(1 + monthly_rate) ** (i - months) * (1 + inflation_rate) ** (months - i) for i in range(1, months + 1)])
     
     return invested_amount, future_value
 
 # Calculate button
 if st.button("Calculate"):
-    invested_amount, future_value = calculate_sip_returns(monthly_investment, investment_period, expected_return_rate)
+    invested_amount, future_value = calculate_sip_returns(monthly_investment, investment_period, expected_return_rate, incorporate_inflation)
     
     # Display results
     col1, col2, col3 = st.columns(3)
@@ -48,7 +53,7 @@ if st.button("Calculate"):
     # Create DataFrame for plotting
     months = np.arange(1, investment_period * 12 + 1)
     invested_values = monthly_investment * months
-    future_values = [calculate_sip_returns(monthly_investment, m/12, expected_return_rate)[1] for m in months]
+    future_values = [calculate_sip_returns(monthly_investment, m/12, expected_return_rate, incorporate_inflation)[1] for m in months]
     
     start_date = date.today()
     df = pd.DataFrame({
@@ -110,4 +115,4 @@ if st.button("Calculate"):
     # Display the bar chart
     st.altair_chart(bars, theme="streamlit", use_container_width=True)
 
-#st.info("Note: This calculator assumes a constant rate of return. Actual returns may vary based on market conditions.")
+# st.info("Note: This calculator assumes a constant rate of return. Actual returns may vary based on market conditions.")

@@ -54,10 +54,9 @@ def calculate_sip_quarterly(monthly_investment, investment_period, expected_retu
         inflation_adjusted_rate = expected_return_rate - 5.0
         quarterly_rate = (inflation_adjusted_rate / 100) / 4
     invested_amount = monthly_investment * quarters
-    future_value = monthly_investment  * ((((1 + quarterly_rate) ** quarters) - 1) / quarterly_rate) * (1 + quarterly_rate)
+    future_value = monthly_investment * ((((1 + quarterly_rate) ** quarters) - 1) / quarterly_rate) * (1 + quarterly_rate)
     
     return invested_amount, future_value
-
 
 # Calculate SIP returns for One-time Investment
 def calculate_sip_one_time(one_time_investment, investment_period, expected_return_rate, adjust_for_inflation):
@@ -71,7 +70,6 @@ def calculate_sip_one_time(one_time_investment, investment_period, expected_retu
     
     return one_time_investment, future_value
 
-
 # Calculate button
 if st.button("Calculate"):
     if investment_type == "Monthly":
@@ -79,43 +77,41 @@ if st.button("Calculate"):
     elif investment_type == "Quarterly":
         invested_amount, future_value = calculate_sip_quarterly(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation)
     elif investment_type == "One-time":
-        invested_amount, future_value = calculate_sip_one_time(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation)
+        invested_amount, future_value = calculate_sip_one_time(monthly_investment * 12, investment_period, expected_return_rate, adjust_for_inflation)
 
-    
     # Display results
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Investment", f"₹{invested_amount:,.0f}")
     col2.metric("Expected Returns", f"₹{future_value - invested_amount:,.0f}")
     col3.metric("Total Value", f"₹{future_value:,.0f}")
-       
+    
     # Create DataFrame for plotting
     periods_per_year = 12 if investment_type == "Monthly" else 4 if investment_type == "Quarterly" else 1
     if investment_type == "Monthly":
         months = np.arange(1, investment_period * periods_per_year + 1)
-        invested_values = [monthly_investment * m / periods_per_year for m in months]
-        future_values = [calculate_sip_monthly(monthly_investment, m / periods_per_year, expected_return_rate, adjust_for_inflation)[1] for m in months]
+        invested_values = [monthly_investment * m for m in months]
+        future_values = [calculate_sip_monthly(monthly_investment, m / 12, expected_return_rate, adjust_for_inflation)[1] for m in months]
     elif investment_type == "Quarterly":
         quarters = np.arange(1, investment_period * periods_per_year + 1)
-        invested_values = [monthly_investment * 3 * q / periods_per_year for q in quarters]
-        future_values = [calculate_sip_quarterly(monthly_investment, q / periods_per_year, expected_return_rate, adjust_for_inflation)[1] for q in quarters]
+        invested_values = [monthly_investment * 3 * q for q in quarters]
+        future_values = [calculate_sip_quarterly(monthly_investment * 3, q / 4, expected_return_rate, adjust_for_inflation)[1] for q in quarters]
     elif investment_type == "One-time":
         years = np.arange(1, investment_period + 1)
-        invested_values = [monthly_investment * 12 * y for y in years]
-        future_values = [calculate_sip_one_time(monthly_investment, y, expected_return_rate, adjust_for_inflation)[1] for y in years]
+        invested_values = [monthly_investment * 12] * len(years)
+        future_values = [calculate_sip_one_time(monthly_investment * 12, y, expected_return_rate, adjust_for_inflation)[1] for y in years]
 
-    
     start_date = date.today()
     df = pd.DataFrame({
         'Month': pd.date_range(start=start_date, periods=len(invested_values), freq='M'),
         'Invested Amount': invested_values,
         'Future Value': future_values
     })
-    
+
     # Create Plotly figure for line chart
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=df['Month'], y=df['Invested Amount'], name='Invested Amount', line=dict(color='#1f77b4')))
     fig1.add_trace(go.Scatter(x=df['Month'], y=df['Future Value'], name='Future Value', line=dict(color='#2ca02c')))
-    
+
     fig1.update_layout(
         title='SIP Growth Over Time',
         xaxis_title='Month',
@@ -124,29 +120,33 @@ if st.button("Calculate"):
         margin=dict(l=50, r=50, t=50, b=50),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-    
+
     # Display the Plotly line chart
     st.plotly_chart(fig1, use_container_width=True)
-    
+
     # Create yearly breakdown data
-    if investment_type == "Monthly":
-        yearly_data = df[df.index % periods_per_year == 0].copy()
-    elif investment_type == "Quarterly":
-        yearly_data = df[df.index % (periods_per_year * 3) == 0].copy()
-    elif investment_type == "One-time":
+    if investment_type in ["Monthly", "Quarterly"]:
+        yearly_data = df.resample('Y', on='Month').last().reset_index()
+    else:  # One-time
         yearly_data = df.copy()
-    if investment_type == "One-time":
-        yearly_data['Year'] = pd.DatetimeIndex(yearly_data['Month']).year
-    else:
-        yearly_data['Year'] = yearly_data.index // periods_per_year + 1
-    yearly_data = yearly_data[['Year', 'Invested Amount', 'Future Value']]
-    yearly_data = yearly_data.melt('Year', var_name='Category', value_name='Amount')
+
+    yearly_data['Year'] = yearly_data['Month'].dt.year
 
     # Create Plotly figure for bar chart
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(x=yearly_data['Year'], y=yearly_data['Invested Amount'], name='Invested Amount', marker_color='#1f77b4'))
-    fig2.add_trace(go.Bar(x=yearly_data['Year'], y=yearly_data['Future Value'], name='Future Value', marker_color='#2ca02c'))
-    
+    fig2.add_trace(go.Bar(
+        x=yearly_data['Year'], 
+        y=yearly_data['Invested Amount'], 
+        name='Invested Amount', 
+        marker_color='#1f77b4'
+    ))
+    fig2.add_trace(go.Bar(
+        x=yearly_data['Year'], 
+        y=yearly_data['Future Value'], 
+        name='Future Value', 
+        marker_color='#2ca02c'
+    ))
+
     fig2.update_layout(
         title='Yearly Breakdown',
         xaxis_title='Year',
@@ -156,8 +156,8 @@ if st.button("Calculate"):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         barmode='group'
     )
-    
+
     # Display the Plotly bar chart
     st.plotly_chart(fig2, use_container_width=True)
 
-#st.info("Note: This calculator assumes a constant rate of return. Actual returns may vary based on market conditions.")
+st.info("Note: This calculator assumes a constant rate of return. Actual returns may vary based on market conditions.")

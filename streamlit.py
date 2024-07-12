@@ -37,7 +37,10 @@ def calculate_sip_returns(monthly_investment, investment_period, expected_return
     inflation_rate = 0.06 / 12 if incorporate_inflation == 'Yes' else 0
 
     invested_amount = monthly_investment * months
-    future_value = monthly_investment * sum([(1 + monthly_rate) ** (i - months) * (1 + inflation_rate) ** (months - i) for i in range(1, months + 1)])
+    future_value = sum([monthly_investment * ((1 + monthly_rate) ** i) for i in range(months)])
+
+    if incorporate_inflation == 'Yes':
+        future_value = future_value / ((1 + inflation_rate) ** months)
     
     return invested_amount, future_value
 
@@ -115,5 +118,4 @@ if st.button("Calculate"):
 
     # Display the bar chart
     st.altair_chart(bars, theme="streamlit", use_container_width=True)
-
-# st.info("Note: This calculator assumes a constant rate of return. Actual returns may vary based on market conditions.")
+    

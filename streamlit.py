@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import altair as alt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import date
 
+st.set_page_config(layout="wide")
 st.title(":green[SIP] Calculator :chart_with_upwards_trend:")
 
 # Remove Streamlit menu and footer
@@ -12,6 +14,10 @@ st.markdown(
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    .stApp {
+        max-width: 100%;
+        padding: 1rem;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -20,6 +26,7 @@ st.markdown(
 # Sliders for input
 monthly_investment = st.slider("Investment Amount (₹)", min_value=500, max_value=50000, value=2000, step=500)
 investment_period = st.slider("Investment Period (Years)", min_value=2, max_value=30, value=4, step=1)
+
 expected_return_rate = st.slider("Expected Annual Return Rate (%)", min_value=6.0, max_value=25.0, value=12.0, step=0.1)
 adjust_for_inflation = st.checkbox("Adjust for Inflation (5% annually)")
 
@@ -28,6 +35,9 @@ investment_type = st.radio("Choose Investment Type", ["Monthly", "Quarterly", "O
 
 # Calculate SIP returns for Monthly Investment
 def calculate_sip_monthly(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation):
+
+
+
     months = investment_period * 12
     monthly_rate = (expected_return_rate / 100) / 12
     
@@ -71,6 +81,7 @@ def calculate_sip_one_time(one_time_investment, investment_period, expected_retu
 
 
 # Calculate button
+
 if st.button("Calculate"):
     if investment_type == "Monthly":
         invested_amount, future_value = calculate_sip_monthly(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation)
@@ -78,6 +89,7 @@ if st.button("Calculate"):
         invested_amount, future_value = calculate_sip_quarterly(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation)
     elif investment_type == "One-time":
         invested_amount, future_value = calculate_sip_one_time(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation)
+
     
     # Display results
     col1, col2, col3 = st.columns(3)
@@ -86,6 +98,7 @@ if st.button("Calculate"):
     col3.metric("Total Value", f"₹{future_value:,.0f}")
        
     # Create DataFrame for plotting
+
     periods_per_year = 12 if investment_type == "Monthly" else 4 if investment_type == "Quarterly" else 1
     if investment_type == "Monthly":
         months = np.arange(1, investment_period * periods_per_year + 1)
@@ -99,6 +112,7 @@ if st.button("Calculate"):
         years = np.arange(1, investment_period + 1)
         invested_values = [monthly_investment * 12 * y for y in years]
         future_values = [calculate_sip_one_time(monthly_investment, y, expected_return_rate, adjust_for_inflation)[1] for y in years]
+
     
     start_date = date.today()
     df = pd.DataFrame({
@@ -107,37 +121,25 @@ if st.button("Calculate"):
         'Future Value': future_values
     })
     
-    # Create Altair chart
-    brush = alt.selection_interval(encodings=["x"])
+    # Create Plotly figure for line chart
+    fig1 = go.Figure()
+    fig1.add_trace(go.Scatter(x=df['Month'], y=df['Invested Amount'], name='Invested Amount', line=dict(color='#1f77b4')))
+    fig1.add_trace(go.Scatter(x=df['Month'], y=df['Future Value'], name='Future Value', line=dict(color='#2ca02c')))
     
-    base = alt.Chart(df).encode(
-        x='Month:T',
-        y=alt.Y('Amount:Q', axis=alt.Axis(title='Amount (₹)', format=',.0f'))
-    ).properties(
-        width=600,
-        height=400
+    fig1.update_layout(
+        title='SIP Growth Over Time',
+        xaxis_title='Month',
+        yaxis_title='Amount (₹)',
+        height=400,
+        margin=dict(l=50, r=50, t=50, b=50),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-
-    lines = base.mark_line().encode(
-        color=alt.Color('Variable:N', scale=alt.Scale(domain=['Invested Amount', 'Future Value'],
-                                                      range=['#1f77b4', '#2ca02c']))
-    ).transform_fold(
-        ['Invested Amount', 'Future Value'],
-        as_=['Variable', 'Amount']
-    )
-
-    points = lines.mark_point().encode(
-        opacity=alt.condition(brush, alt.value(1), alt.value(0.2))
-    ).add_selection(brush)
-
-    chart = (lines + points).properties(
-        title='SIP Growth Over Time'
-    ).interactive()
-
-    # Display the Altair chart with Streamlit theme
-    st.altair_chart(chart, theme="streamlit", use_container_width=True)
+    
+    # Display the Plotly line chart
+    st.plotly_chart(fig1, use_container_width=True)
     
     # Create yearly breakdown data
+
     if investment_type == "Monthly":
         yearly_data = df[df.index % periods_per_year == 0].copy()
     elif investment_type == "Quarterly":

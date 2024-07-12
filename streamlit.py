@@ -26,12 +26,18 @@ st.markdown(
 # Sliders for input
 monthly_investment = st.slider("Monthly Investment Amount (₹)", min_value=500, max_value=50000, value=2000, step=500)
 investment_period = st.slider("Investment Period (Years)", min_value=2, max_value=30, value=4, step=1)
-expected_return_rate = st.slider("Expected Annual Return Rate (%)", min_value=6.0, max_value=25.0, value=12.0, step=0.1)
+expected_return_rate = st.slider("Expected Annual Return Rate (%)", min_value=8.0, max_value=25.0, value=15.0, step=0.1)
+adjust_for_inflation = st.checkbox("Adjust for Inflation (6% annually)")
 
-# Calculate SIP returns
-def calculate_sip_returns(monthly_investment, investment_period, expected_return_rate):
+# Calculate SIP returns with or without inflation adjustment
+def calculate_sip_returns(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation):
     months = investment_period * 12
     monthly_rate = (expected_return_rate / 100) / 12
+    
+    if adjust_for_inflation:
+        # Adjust expected return rate for inflation (5% annually)
+        inflation_adjusted_rate = expected_return_rate - 5.0
+        monthly_rate = (inflation_adjusted_rate / 100) / 12
     
     invested_amount = monthly_investment * months
     future_value = monthly_investment * ((((1 + monthly_rate) ** months) - 1) / monthly_rate) * (1 + monthly_rate)
@@ -40,7 +46,7 @@ def calculate_sip_returns(monthly_investment, investment_period, expected_return
 
 # Calculate button
 if st.button("Calculate", use_container_width=True):
-    invested_amount, future_value = calculate_sip_returns(monthly_investment, investment_period, expected_return_rate)
+    invested_amount, future_value = calculate_sip_returns(monthly_investment, investment_period, expected_return_rate, adjust_for_inflation)
     
     # Display results
     col1, col2, col3 = st.columns(3)
@@ -51,7 +57,7 @@ if st.button("Calculate", use_container_width=True):
     # Create DataFrame for plotting
     months = np.arange(1, investment_period * 12 + 1)
     invested_values = monthly_investment * months
-    future_values = [calculate_sip_returns(monthly_investment, m/12, expected_return_rate)[1] for m in months]
+    future_values = [calculate_sip_returns(monthly_investment, m/12, expected_return_rate, adjust_for_inflation)[1] for m in months]
     
     start_date = date.today()
     df = pd.DataFrame({

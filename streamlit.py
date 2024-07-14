@@ -74,7 +74,8 @@ for i in range(num_plans):
 if st.button("Calculate"):
     fig1 = go.Figure()
     fig2 = go.Figure()
-    
+    colors = ['#1f77b4','#9467bd',  '#2ca02c', '#d62728',  '#ff7f0e']
+
     for i, plan in enumerate(plans):
         monthly_investment, investment_period, expected_return_rate, adjust_for_inflation, investment_type = plan
         if investment_type == "Monthly":
@@ -107,8 +108,8 @@ if st.button("Calculate"):
         })
 
         # Add traces to the plot
-        fig1.add_trace(go.Scatter(x=df['Month'], y=df['Invested Amount'], name=f'Invested Amount - Plan {i+1}', line=dict(color='#1f77b4', dash='dash')))
-        fig1.add_trace(go.Scatter(x=df['Month'], y=df['Future Value'], name=f'Future Value - Plan {i+1}', line=dict(color='#2ca02c')))
+        fig1.add_trace(go.Scatter(x=df['Month'], y=df['Invested Amount'], name=f'Invested Amount - Plan {i+1}', line=dict(color=colors[i], dash='dash')))
+        fig1.add_trace(go.Scatter(x=df['Month'], y=df['Future Value'], name=f'Future Value - Plan {i+1}', line=dict(color=colors[i])))
         
         # Yearly breakdown
         yearly_data = df.resample('Y', on='Month').last().reset_index() if investment_type in ["Monthly", "Quarterly"] else df.copy()
@@ -118,13 +119,13 @@ if st.button("Calculate"):
             x=yearly_data['Year'], 
             y=yearly_data['Invested Amount'], 
             name=f'Invested Amount - Plan {i+1}', 
-            marker_color='#1f77b4'
+            marker_color=colors[i]
         ))
         fig2.add_trace(go.Bar(
             x=yearly_data['Year'], 
             y=yearly_data['Future Value'], 
             name=f'Future Value - Plan {i+1}', 
-            marker_color='#2ca02c'
+            marker_color=colors[i]
         ))
 
     # Update layout of the plots
